@@ -7,6 +7,8 @@ import json
 from datetime import datetime, timedelta
 import matplotlib.dates as mdates
 import os
+from dateutil.relativedelta import relativedelta
+
 
 productos_bp = Blueprint('productos', __name__)
 
@@ -20,6 +22,7 @@ def predict_producto(id):
     cur.close()
     if data:
         producto = data[0]
+        fecha_actual = datetime.now()
         precios_historicos_str = producto[-2]
         precios_historicos_dict = json.loads(precios_historicos_str)
         precios_historicos_dict = {v: k for k, v in precios_historicos_dict.items()}
@@ -31,9 +34,17 @@ def predict_producto(id):
         precios_historicos = np.array(precios_historicos).reshape(-1, 1)
         modelo = LinearRegression()
         modelo.fit(tiempo, precios_historicos)
-        tiempo_futuro = np.array(range(len(precios_historicos), len(precios_historicos) + 180)).reshape(-1, 1)
+        tiempo_futuro = np.array(range(len(precios_historicos), len(precios_historicos) + 10)).reshape(-1, 1)
         precio_futuro = modelo.predict(tiempo_futuro)
-        fechas_futuras = [fechas[-1] + timedelta(days=i) for i in range(180)]
+         # Decide cuántos meses predecir en base a la fecha actual
+        if fecha_actual.month < 10:
+            # Si estamos antes de octubre, predecir hasta el final del año
+            meses_a_predecir = 12 - fecha_actual.month
+        else:
+            # Si estamos en octubre o después, predecir los próximos 6 meses
+            meses_a_predecir = 6
+        # Genera las fechas futuras a partir de la fecha actual
+        fechas_futuras = [fecha_actual + relativedelta(months=+i) for i in range(meses_a_predecir)]
         # Crear un diccionario con las fechas futuras y los precios futuros correspondientes
         predicciones = {str(fecha.date()): float(precio) for fecha, precio in zip(fechas_futuras, precio_futuro)}
        
