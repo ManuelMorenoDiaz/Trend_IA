@@ -4,7 +4,7 @@ CREATE DATABASE trend_ia;
 use trend_ia;
 
 CREATE TABLE Categorias (
-    id_c INT PRIMARY KEY,
+    id_c INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(70),
     descripcion TEXT,
     imagen_portada VARCHAR(255)
@@ -28,7 +28,7 @@ CREATE TABLE Productos (
 );
 
 CREATE TABLE Ventas (
-    id_v INT PRIMARY KEY,
+    id_v INT PRIMARY KEY AUTO_INCREMENT,
     cantidad INT,
     fecha DATE,
     id_p INT, 
@@ -36,7 +36,7 @@ CREATE TABLE Ventas (
 );
 
 CREATE TABLE Usuarios (
-    id_u INT PRIMARY KEY,
+    id_u INT PRIMARY KEY AUTO_INCREMENT,
     nombre VARCHAR(255) NOT NULL,
     correo VARCHAR(255) NOT NULL,
     contraseña VARCHAR(255) NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE Usuarios (
 );
 
 CREATE TABLE Presupuestos (
-    id_pre INT PRIMARY KEY,
+    id_pre INT PRIMARY KEY AUTO_INCREMENT,
     titulo VARCHAR(255) NOT NULL,
     monto DECIMAL(10,2),
     fecha_creacion DATE,
@@ -55,7 +55,7 @@ CREATE TABLE Presupuestos (
 );
 
 CREATE TABLE Presupuesto_Productos (
-    id_ppo INT PRIMARY KEY,
+    id_ppo INT PRIMARY KEY AUTO_INCREMENT,
     cantidad INT NOT NULL,
     id_pre INT,
     FOREIGN KEY (id_pre) REFERENCES Presupuestos(id_pre) ON DELETE CASCADE,
@@ -65,13 +65,13 @@ CREATE TABLE Presupuesto_Productos (
 
 CREATE TABLE Historial_Presupuestos (
     id_hp INT PRIMARY KEY,
-    fecha_creacion DATE NOT NULL,
+    fecha_creacion DATE NOT NULL AUTO_INCREMENT,
     id_pre INT,
     FOREIGN KEY (id_pre) REFERENCES Presupuestos(id_pre) ON DELETE CASCADE
 );
 
 CREATE TABLE Carrito_Producto (
-    id_cp INT PRIMARY KEY,
+    id_cp INT PRIMARY KEY AUTO_INCREMENT,
     cantidad INT,
     id_p INT,
     FOREIGN KEY (id_p) REFERENCES Productos(id_p) ON DELETE CASCADE,
@@ -80,14 +80,14 @@ CREATE TABLE Carrito_Producto (
 );
 
 CREATE TABLE Historial_Compras (
-    id_hc INT PRIMARY KEY,
+    id_hc INT PRIMARY KEY AUTO_INCREMENT,
     fecha_compra DATE,
     id_ca INT,
     FOREIGN KEY (id_ca) REFERENCES Carritos(id_ca) ON DELETE CASCADE
 );
 
 CREATE TABLE Carritos (
-    id_ca INT PRIMARY KEY,
+    id_ca INT PRIMARY KEY AUTO_INCREMENT,
     fecha_creacion DATE,
     id_u INT,
     FOREIGN KEY (id_u) REFERENCES Usuarios(id_u) ON DELETE SET NULL

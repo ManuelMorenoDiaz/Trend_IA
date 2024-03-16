@@ -72,15 +72,76 @@ def guardar_imagen(ruta, imagen):
     
 @productos_bp.route('/productos', methods=['POST'])
 def add_producto():
-    # Aquí iría el código para añadir un producto a la base de datos
-    # Deberías obtener los datos del producto del cuerpo de la solicitud HTTP
-    pass
+    data = request.get_json()
+    nombre = data['nombre']
+    descripcion = data['descripcion']
+    marca = data['marca']
+    precio = data['precio']
+    imagen_portada = data['imagen_portada']
+    cantidad_stock = data['cantidad_stock']
+    calificacion = data['calificacion']
+    fecha_lanzamiento = datetime.strptime(data['fecha_lanzamiento'], "%Y-%m-%d")
+    
+    cur = mysql.connection.cursor()
+    
+    query_insertion = """
+        INSERT INTO Productos (nombre, descripcion, marca, precio, imagen_portada,
+                               cantidad_stock, calificacion, fecha_lanzamiento)
+        VALUES (%s, %s, %s, %s, %s, %s,%s,%s)
+        """
+        
+    cur.execute(query_insertion,(nombre,
+                                 descripcion,
+                                 marca,
+                                 precio,
+                                 imagen_portada,
+                                 cantidad_stock,
+                                 calificacion,
+                                 fecha_lanzamiento))
+    
+    mysql.connection.commit()
+    
+    cur.close()
+    
+    return jsonify({'message': 'Producto añadido correctamente'})
 
 @productos_bp.route('/productos/<id>', methods=['PUT'])
 def update_producto(id):
-    # Aquí iría el código para actualizar un producto en la base de datos
-    # Deberías obtener los nuevos datos del producto del cuerpo de la solicitud HTTP
-    pass
+    data = request.get_json()
+    nombre = data['nombre']
+    descripcion = data['descripcion']
+    marca = data['marca']
+    precio = data['precio']
+    imagen_portada = data['imagen_portada']
+    cantidad_stock = data['cantidad_stock']
+    calificacion = data['calificacion']
+    fecha_lanzamiento = datetime.strptime(data['fecha_lanzamiento'], "%Y-%m-%d")
+    
+    cur = mysql.connection.cursor()
+    
+    query_update = """
+        UPDATE Productos
+        SET nombre = %s, descripcion = %s, marca = %s, precio = %s, imagen_portada = %s,
+            cantidad_stock = %s, calificacion = %s, fecha_lanzamiento = %s
+        WHERE id_p = %s
+        """
+        
+    cur.execute(query_update,(nombre,
+                              descripcion,
+                              marca,
+                              precio,
+                              imagen_portada,
+                              cantidad_stock,
+                              calificacion,
+                              fecha_lanzamiento,
+                              id))
+    
+    mysql.connection.commit()
+    
+    cur.close()
+    
+    return jsonify({'message': 'Producto actualizado correctamente'})
+
 
 @productos_bp.route('/productos/<id>', methods=['DELETE'])
 def delete_producto(id):
