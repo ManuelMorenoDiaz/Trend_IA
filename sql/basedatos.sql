@@ -64,10 +64,17 @@ CREATE TABLE Presupuesto_Productos (
 );
 
 CREATE TABLE Historial_Presupuestos (
-    id_hp INT PRIMARY KEY,
-    fecha_creacion DATE NOT NULL AUTO_INCREMENT,
+    id_hp INT PRIMARY KEY AUTO_INCREMENT,
+    fecha_creacion DATE NOT NULL,
     id_pre INT,
     FOREIGN KEY (id_pre) REFERENCES Presupuestos(id_pre) ON DELETE CASCADE
+);
+
+CREATE TABLE Carritos (
+    id_ca INT PRIMARY KEY AUTO_INCREMENT,
+    fecha_creacion DATE,
+    id_u INT,
+    FOREIGN KEY (id_u) REFERENCES Usuarios(id_u) ON DELETE SET NULL
 );
 
 CREATE TABLE Carrito_Producto (
@@ -86,9 +93,4 @@ CREATE TABLE Historial_Compras (
     FOREIGN KEY (id_ca) REFERENCES Carritos(id_ca) ON DELETE CASCADE
 );
 
-CREATE TABLE Carritos (
-    id_ca INT PRIMARY KEY AUTO_INCREMENT,
-    fecha_creacion DATE,
-    id_u INT,
-    FOREIGN KEY (id_u) REFERENCES Usuarios(id_u) ON DELETE SET NULL
-);
+

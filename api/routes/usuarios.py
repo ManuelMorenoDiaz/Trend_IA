@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from flask_mysqldb import MySQL
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 mysql = MySQL()
 bcrypt = Bcrypt()
@@ -17,7 +18,11 @@ def register():
     nombre = data['nombre']
     correo = data['correo']
     contraseña = bcrypt.generate_password_hash(data['contraseña']).decode('utf-8')
-    suscripcion = data['suscripcion']
+    
+    if 'suscripcion' in data:
+        suscripcion = data['suscripcion']
+    else:
+        suscripcion = ' '
     
     cur = mysql.connection.cursor()
     
@@ -46,7 +51,7 @@ def login():
     cur.close()
     
     if user is None:
-        return jsonify({"error": "Usuario no encontrado"})
+        return jsonify({"error": "Usuario no encontrado"}), 404
     elif bcrypt.check_password_hash(user[3], contraseña):  # Asume que la contraseña es el cuarto elemento en la tupla
         access_token = create_access_token(identity=correo)
         return jsonify({'message': 'Inicio de sesión exitoso', 'access_token': access_token})
@@ -127,3 +132,20 @@ def delete_usuario(id):
     mysql.connection.commit()
     cur.close()
     return jsonify({'result': 'Usuario eliminado correctamente'})
+
+
+blacklisted_tokens = set()
+
+@usuarios_bp.route('/logout', methods=['POST'])
+def logout():
+    # Obtiene el token del usuario desde la solicitud
+    token = request.headers.get('Authorization')
+    
+    if token:
+        # Agrega el token a la lista negra
+        blacklisted_tokens.add(token)
+        
+        return jsonify({'message': 'Sesión cerrada correctamente'})
+    else:
+        return jsonify({'message': 'No se proporcionó un token válido'})
+

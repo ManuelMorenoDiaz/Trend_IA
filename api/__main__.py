@@ -30,7 +30,7 @@ mysql = MySQL(app)
 jwt = JWTManager(app)
 
 # Habilita CORS
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Registra los blueprints
 app.register_blueprint(usuarios_bp)
