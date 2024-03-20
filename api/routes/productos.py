@@ -39,7 +39,7 @@ def predict_producto(id):
          # Decide cuántos meses predecir en base a la fecha actual
         if fecha_actual.month < 10:
             # Si estamos antes de octubre, predecir hasta el final del año
-            meses_a_predecir = 12 - fecha_actual.month
+            meses_a_predecir = 13 - fecha_actual.month
         else:
             # Si estamos en octubre o después, predecir los próximos 6 meses
             meses_a_predecir = 6
@@ -48,14 +48,14 @@ def predict_producto(id):
         # Crear un diccionario con las fechas futuras y los precios futuros correspondientes
         predicciones = {str(fecha.date()): float(precio) for fecha, precio in zip(fechas_futuras, precio_futuro)}
        
-        plt.figure(figsize=(10,5))
-        plt.plot(fechas, precios_historicos, color='blue', label='Precios históricos')
-        plt.plot(fechas_futuras, precio_futuro, color='red', label='Predicción')
-        plt.xlabel('Fecha')
-        plt.ylabel('Precio')
-        plt.title('Precios históricos y predicción futura')
-        plt.legend()
-        plt.show()
+        # plt.figure(figsize=(10,5))
+        # plt.plot(fechas, precios_historicos, color='blue', label='Precios históricos')
+        # plt.plot(fechas_futuras, precio_futuro, color='red', label='Predicción')
+        # plt.xlabel('Fecha')
+        # plt.ylabel('Precio')
+        # plt.title('Precios históricos y predicción futura')
+        # plt.legend()
+        # plt.show()
         return jsonify({'predicciones': predicciones})
 
     else:
