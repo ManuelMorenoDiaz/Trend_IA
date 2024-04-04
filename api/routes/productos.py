@@ -69,6 +69,48 @@ def guardar_imagen(ruta, imagen):
         contador += 1
     imagen.savefig(ruta)
     return ruta
+
+
+@productos_bp.route('/productos', methods=['GET'])
+def get_productos():
+    id_c = request.args.get('id_c', default=None, type=int)  # Obtenemos el ID de la categoría si está presente
+    
+    query_base = "SELECT id_p, nombre, descripcion, marca, precio, imagen_portada, cantidad_stock, calificacion, fecha_lanzamiento, fecha_estimada, ecommerce, historial_precios, id_c FROM Productos"
+    
+    cur = mysql.connection.cursor()
+    if id_c is not None:
+        # Filtramos los productos por el ID de la categoría
+        cur.execute(f"{query_base} WHERE id_c = %s", (id_c,))
+    else:
+        # Obtenemos todos los productos si no se especificó una categoría
+        cur.execute(query_base)
+    
+    data = cur.fetchall()
+    cur.close()
+
+    productos_list = []
+    for producto in data:
+        producto_dict = {
+            'id_p': producto[0],
+            'nombre': producto[1],
+            'descripcion': producto[2],
+            'marca': producto[3],
+            'precio': str(producto[4]),
+            'imagen_portada': producto[5],
+            'cantidad_stock': producto[6],
+            'calificacion': str(producto[7]),
+            'fecha_lanzamiento': producto[8].strftime('%Y-%m-%d') if producto[8] else None,
+            'fecha_estimada': producto[9],
+            'ecommerce': producto[10],
+            'historial_precios': producto[11],
+            'id_c': producto[12]
+        }
+        productos_list.append(producto_dict)
+
+    return jsonify({'productos': productos_list})
+
+
+
     
 @productos_bp.route('/productos', methods=['POST'])
 def add_producto():
