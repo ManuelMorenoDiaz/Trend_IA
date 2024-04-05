@@ -73,18 +73,26 @@ def guardar_imagen(ruta, imagen):
 
 @productos_bp.route('/productos', methods=['GET'])
 def get_productos():
-    id_c = request.args.get('id_c', default=None, type=int)  # Obtenemos el ID de la categoría si está presente
-    
-    query_base = "SELECT id_p, nombre, descripcion, marca, precio, imagen_portada, cantidad_stock, calificacion, fecha_lanzamiento, fecha_estimada, ecommerce, historial_precios, id_c FROM Productos"
-    
+    # Obtenemos el nombre de la categoría si está presente
+    nombre_categoria = request.args.get('nombre_categoria', default=None, type=str)
+
+    # Se ajusta la consulta para incluir un JOIN con la tabla Categorias y seleccionar nombre_c
+    # y filtrar basado en el nombre de la categoría si se proporciona
+    query_base = """
+    SELECT Productos.id_p, Productos.nombre, Productos.descripcion, Productos.marca, Productos.precio, Productos.imagen_portada, Productos.cantidad_stock, Productos.calificacion, Productos.fecha_lanzamiento, Productos.fecha_estimada, Productos.ecommerce, Productos.historial_precios, Categorias.nombre AS nombre_categoria
+    FROM Productos
+    JOIN Categorias ON Productos.id_c = Categorias.id_c
+    """
+
     cur = mysql.connection.cursor()
-    if id_c is not None:
-        # Filtramos los productos por el ID de la categoría
-        cur.execute(f"{query_base} WHERE id_c = %s", (id_c,))
+    if nombre_categoria is not None:
+        # Filtramos los productos por el nombre de la categoría
+        query_base += " WHERE Categorias.nombre = %s"
+        cur.execute(query_base, (nombre_categoria,))
     else:
-        # Obtenemos todos los productos si no se especificó una categoría
+        # Obtenemos todos los productos si no se especificó una categoría por nombre
         cur.execute(query_base)
-    
+
     data = cur.fetchall()
     cur.close()
 
@@ -103,7 +111,7 @@ def get_productos():
             'fecha_estimada': producto[9],
             'ecommerce': producto[10],
             'historial_precios': producto[11],
-            'id_c': producto[12]
+            'nombre_categoria': producto[12]
         }
         productos_list.append(producto_dict)
 

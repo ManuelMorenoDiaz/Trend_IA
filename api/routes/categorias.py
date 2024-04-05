@@ -35,10 +35,10 @@ def get_all_categorias():
     cur.close()
     return jsonify({'categorias': data})
 
-@categorias_bp.route('/categorias/<id>', methods=['GET'])
-def get_categoria(id):
+@categorias_bp.route('/categorias/<nombre>', methods=['GET'])
+def get_categoria(nombre):
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM Categorias WHERE id_c = %s", (id,))
+    cur.execute("SELECT * FROM Categorias WHERE nombre = %s", (nombre,))
     data = cur.fetchone()
     cur.close()
     if data:
