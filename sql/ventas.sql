@@ -30,7 +30,7 @@ BEGIN
     END IF;
 
     -- Genera un número aleatorio de ventas entre 50 y 10000 para cada producto
-    SET num_ventas = FLOOR(50 + RAND() * 5000);
+    SET num_ventas = FLOOR(10 + RAND() * 30);
 
     SET j = 1;
     WHILE j <= num_ventas DO
@@ -53,3 +53,4 @@ DELIMITER ;
 
 CALL generar_ventas
 
+DELETE FROM ventas

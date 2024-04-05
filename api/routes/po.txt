@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import warnings
-from concurrent.futures import ThreadPoolExecutor
 
 # Suprimir las advertencias
 warnings.filterwarnings("ignore")
@@ -16,7 +15,6 @@ mysql = MySQL()
 ventas_bp = Blueprint('ventas', __name__)
 
 def ajustar_modelo(id_p, ventas):
-    ventas_id_p = ventas[ventas['id_p'] == id_p]
     try:
         # Filtrar las ventas para este id_p
         ventas_id_p = ventas[ventas['id_p'] == id_p]
@@ -33,7 +31,7 @@ def ajustar_modelo(id_p, ventas):
 
         # Asignar una frecuencia al índice de fecha
         # 'D' significa diaria. Cambia esto si tus datos tienen una frecuencia diferente
-        ventas_id_p = ventas_id_p.asfreq('M')
+        ventas_id_p = ventas_id_p.asfreq('D')
 
         # Seleccionar la cantidad vendida para el modelado de series temporales
         cantidad_vendida = ventas_id_p['cantidad']
@@ -61,7 +59,7 @@ def ajustar_modelo(id_p, ventas):
 def get_all_ventas():
     cur = mysql.connection.cursor()
     # cur.execute("SELECT * FROM Ventas")
-    cur.execute("SELECT * FROM Ventas")
+    cur.execute("SELECT * FROM Ventas WHERE id_p IN (1, 2, 3, 4, 5, 6, 7, 8)")
     data = cur.fetchall()
     cur.close()
 
@@ -70,9 +68,6 @@ def get_all_ventas():
 
     # Obtener todos los id_p únicos
     id_p_unicos = ventas['id_p'].unique()
-
-    with ThreadPoolExecutor() as executor:
-        executor.map(ajustar_modelo, id_p_unicos)
 
     # Crear un diccionario para almacenar las pendientes de las predicciones de ventas
     pendientes = {}
@@ -87,7 +82,7 @@ def get_all_ventas():
     id_p_ordenados = sorted(pendientes, key=pendientes.get, reverse=True)
 
     # Convertir los id_p a int antes de devolver la respuesta JSON
-    id_p_ordenados = [int(id_p) for id_p in id_p_ordenados[:50]]
+    id_p_ordenados = [int(id_p) for id_p in id_p_ordenados[:10]]
 
     # Fetch the information of each product id
     productos_list = []
@@ -116,68 +111,3 @@ def get_all_ventas():
             productos_list.append(producto_dict)
 
     return jsonify({'productos': productos_list})
-
-@ventas_bp.route('/ventas/<id>', methods=['GET'])
-def get_venta(id):
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM Ventas WHERE id_v = %s", (id,))
-    data = cur.fetchone()
-    cur.close()
-    if data:
-        return jsonify({'venta': data})
-    else:
-        return jsonify({"error": "Venta no encontrada"})
-
-@ventas_bp.route('/ventas', methods=['POST'])
-def add_venta():
-    data = request.get_json()
-    cantidad = data['cantidad']
-    fecha = datetime.strptime(data['fecha'], "%Y-%m-%d")
-    id_p = data['id_p']
-    
-    cur = mysql.connection.cursor()
-    
-    query_insertion = """
-        INSERT INTO Ventas (cantidad, fecha, id_p)
-        VALUES (%s, %s, %s)
-        """
-        
-    cur.execute(query_insertion,(cantidad, fecha, id_p))
-    
-    mysql.connection.commit()
-    
-    cur.close()
-    
-    return jsonify({'message': 'Venta añadida correctamente'})
-
-
-@ventas_bp.route('/ventas/<id>', methods=['PUT'])
-def update_venta(id):
-    data = request.get_json()
-    cantidad = data['cantidad']
-    fecha = datetime.strptime(data['fecha'], "%Y-%m-%d")
-    id_p = data['id_p']
-    
-    cur = mysql.connection.cursor()
-    
-    query_update = """
-        UPDATE Ventas
-        SET cantidad = %s, fecha = %s, id_p = %s
-        WHERE id_v = %s
-        """
-        
-    cur.execute(query_update,(cantidad, fecha, id_p, id))
-    
-    mysql.connection.commit()
-    
-    cur.close()
-    
-    return jsonify({'message': 'Venta actualizada correctamente'})
-
-@ventas_bp.route('/ventas/<id>', methods=['DELETE'])
-def delete_venta(id):
-    cur = mysql.connection.cursor()
-    cur.execute("DELETE FROM Ventas WHERE id_v = %s", (id,))
-    mysql.connection.commit()
-    cur.close()
-    return jsonify({'result': 'Venta eliminada correctamente'})

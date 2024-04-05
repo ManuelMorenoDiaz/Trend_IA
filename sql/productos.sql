@@ -51,12 +51,12 @@ BEGIN
   END WHILE;
   SET all_dates = CONCAT(all_dates, ']');
 
-  WHILE i <= 200 DO
+  WHILE i <= 20 DO
     SET random_price = FLOOR(precio_min + RAND() * (precio_max - precio_min));
     SET random_stock = FLOOR(1 + RAND() * 100);
     SET random_rating = ROUND((2.5 + RAND() * (5 - 2.5)), 2);
     SET random_brand = REPLACE(JSON_UNQUOTE(JSON_EXTRACT(brand_array, CONCAT('$[', FLOOR(RAND() * JSON_LENGTH(brand_array)), ']'))), '"', '');
-    SET ecommerce = IF(i <= 100, 'WALMART', 'AMAZON');
+    SET ecommerce = IF(i <= 10, 'WALMART', 'AMAZON');
     SET random_estimated = FLOOR(1 + RAND() * 7);
 
     -- Seleccionar una fecha aleatoria de la lista de todas las fechas para la fecha de lanzamiento
@@ -81,7 +81,7 @@ BEGIN
     END IF;
 
     INSERT INTO Productos ( nombre, descripcion, marca, precio, imagen_portada, cantidad_stock, calificacion, fecha_lanzamiento, fecha_estimada, ecommerce, historial_precios, id_c) 
-    VALUES ( CONCAT(nombre_pro, IF(i <= 100, i, i - 100)), 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas quidem alias porro provident consequatur expedita voluptatem, commodi id similique tempora, fugit quo. Dolorum at iusto dolore assumenda natus accusantium provident.', random_brand, random_price,'https://placehold.co/500x400', random_stock , random_rating , random_date , random_estimated , ecommerce, CONCAT('{', price_history, '}'), categoria);
+    VALUES ( CONCAT(nombre_pro, IF(i <= 10, i, i - 10)), 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas quidem alias porro provident consequatur expedita voluptatem, commodi id similique tempora, fugit quo. Dolorum at iusto dolore assumenda natus accusantium provident.', random_brand, random_price,'https://placehold.co/500x400', random_stock , random_rating , random_date , random_estimated , ecommerce, CONCAT('{', price_history, '}'), categoria);
     
     SET price_history = '';
     SET i = i + 1;
@@ -104,3 +104,6 @@ CALL DatosInsert(12, 600, 5000, 'Bocina'); -- Bocinas
 CALL DatosInsert(13, 2000, 12000, 'Tablet'); -- Tabletas
 CALL DatosInsert(14, 100, 1300, 'Blusa'); -- Blusas
 CALL DatosInsert(15, 400, 1000, 'Pantalones'); -- Pantalones
+
+
+delete from productos
