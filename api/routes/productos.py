@@ -8,11 +8,104 @@ from datetime import datetime, timedelta
 import matplotlib.dates as mdates
 import os
 from dateutil.relativedelta import relativedelta
-
+from sklearn.cluster import KMeans
 
 productos_bp = Blueprint('productos', __name__)
 
 mysql = MySQL()
+
+@productos_bp.route('/productos/pre', methods=['POST'])
+def get_productos_filtrados():
+    data = request.get_json()
+    id_c = data['id_c']
+    ecommerce = data['ecommerce']
+    presupuesto = float(data['presupuesto'])
+
+    # Inicializar la lista de productos recomendados
+    productos_recomendados = []
+
+    # Obtener todos los productos que coinciden con el id_c y el ecommerce
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM Productos WHERE id_c = %s AND ecommerce = %s", (id_c, ecommerce))
+    productos = cur.fetchall()
+    cur.close()
+
+   # Convertir los productos a diccionarios
+    productos = [dict(zip(['id_p', 'nombre', 'descripcion', 'marca', 'precio', 'imagen_portada', 'cantidad_stock', 'calificacion', 'fecha_lanzamiento', 'fecha_estimada', 'ecommerce', 'historial_precios', 'id_c'], producto)) for producto in productos]
+
+    # Ordenar los productos
+    productos = sorted(productos, key=lambda x: (-float(x['calificacion']), -x['cantidad_stock'], x['fecha_estimada'], float(x['precio'])))
+
+    # Recorrer la lista de productos
+    for producto in productos:
+        # Si el precio del producto es menor o igual al presupuesto
+        if float(producto['precio']) <= presupuesto:
+            # Añadir el producto a la lista de productos recomendados
+            productos_recomendados.append(producto)
+            # Restar el precio del producto al presupuesto
+            presupuesto -= float(producto['precio'])
+
+
+    # Devolver la lista de productos recomendados
+    return jsonify({'productos': productos_recomendados})
+
+
+@productos_bp.route('/productos/seg', methods=['GET'])
+def get_productosseg():
+    id_c = request.args.get('id_c', default=None, type=int)  # Obtenemos el ID de la categoría si está presente
+    
+    query_base = "SELECT id_p, nombre, descripcion, marca, precio, imagen_portada, cantidad_stock, calificacion, fecha_lanzamiento, fecha_estimada, ecommerce, historial_precios, id_c FROM Productos"
+    
+    cur = mysql.connection.cursor()
+    if id_c is not None:
+        # Filtramos los productos por el ID de la categoría
+        cur.execute(f"{query_base} WHERE id_c = %s", (id_c,))
+    else:
+        # Obtenemos todos los productos si no se especificó una categoría
+        cur.execute(query_base)
+    
+    data = cur.fetchall()
+    cur.close()
+
+    productos_list = []
+    for producto in data:
+        producto_dict = {
+            'id_p': producto[0],
+            'nombre': producto[1],
+            'descripcion': producto[2],
+            'marca': producto[3],
+            'precio': str(producto[4]),
+            'imagen_portada': producto[5],
+            'cantidad_stock': producto[6],
+            'calificacion': str(producto[7]),
+            'fecha_lanzamiento': producto[8].strftime('%Y-%m-%d') if producto[8] else None,
+            'fecha_estimada': producto[9],
+            'ecommerce': producto[10],
+            'historial_precios': producto[11],
+            'id_c': producto[12]
+        }
+        productos_list.append(producto_dict)
+
+    # Convert the list of dictionaries to a numpy array
+    productos_array = np.array([(float(producto['precio']), producto['cantidad_stock'], float(producto['calificacion'])) for producto in productos_list])
+
+    # Apply KMeans clustering
+    kmeans = KMeans(n_clusters=3, random_state=0).fit(productos_array)
+
+    # Add the cluster labels to the product dictionaries
+    for i in range(len(productos_list)):
+        productos_list[i]['cluster'] = int(kmeans.labels_[i])
+
+    # Plot the clusters
+    plt.scatter([float(producto['precio']) for producto in productos_list], 
+                [producto['cantidad_stock'] for producto in productos_list], 
+                c=[producto['cluster'] for producto in productos_list])
+    plt.xlabel('Precio')
+    plt.ylabel('Cantidad en Stock')
+    plt.show()
+
+    return jsonify({'productos': productos_list})
+
 
 @productos_bp.route('/productos/<id>/predict', methods=['GET'])
 def predict_producto(id):
@@ -57,7 +150,6 @@ def predict_producto(id):
         # plt.legend()
         # plt.show()
         return jsonify({'predicciones': predicciones})
-
     else:
         return jsonify({"error": "Producto no encontrado"})
 
@@ -69,6 +161,8 @@ def guardar_imagen(ruta, imagen):
         contador += 1
     imagen.savefig(ruta)
     return ruta
+
+
 
 
 @productos_bp.route('/productos', methods=['GET'])
@@ -109,9 +203,6 @@ def get_productos():
 
     return jsonify({'productos': productos_list})
 
-
-
-    
 @productos_bp.route('/productos', methods=['POST'])
 def add_producto():
     data = request.get_json()
