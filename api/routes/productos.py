@@ -132,10 +132,10 @@ def predict_producto(id):
          # Decide cuántos meses predecir en base a la fecha actual
         if fecha_actual.month < 10:
             # Si estamos antes de octubre, predecir hasta el final del año
-            meses_a_predecir = 13 - fecha_actual.month
+            meses_a_predecir = 24 - fecha_actual.month
         else:
             # Si estamos en octubre o después, predecir los próximos 6 meses
-            meses_a_predecir = 6
+            meses_a_predecir = 10
         # Genera las fechas futuras a partir de la fecha actual
         fechas_futuras = [fecha_actual + relativedelta(months=+i) for i in range(meses_a_predecir)]
         # Crear un diccionario con las fechas futuras y los precios futuros correspondientes

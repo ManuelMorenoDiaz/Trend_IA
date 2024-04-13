@@ -8,15 +8,15 @@ carrito_producto_bp = Blueprint('carrito_producto', __name__)
 @carrito_producto_bp.route('/carrito_producto', methods=['POST'])
 def add_carrito_producto():
     data = request.get_json()
+    print(data)
     cantidad = data['cantidad']
     id_p = data['id_p']
     id_ca = data['id_ca']
-    
     cur = mysql.connection.cursor()
     
     query_insertion = """
         INSERT INTO Carrito_Producto (cantidad, id_p, id_ca)
-        VALUES (%s, %s, %s)
+        VALUES (%s, %s, %s) 
         """
         
     cur.execute(query_insertion, (cantidad, id_p, id_ca))
@@ -38,13 +38,20 @@ def get_all_carrito_productos():
 @carrito_producto_bp.route('/carrito_producto/<id>', methods=['GET'])
 def get_carrito_producto(id):
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM Carrito_Producto WHERE id_cp = %s", (id,))
-    data = cur.fetchone()
-    cur.close()
+    cur.execute("""
+        SELECT p.nombre, p.imagen_portada, p.descripcion, p.precio, cp.id_cp, cp.cantidad, cp.id_ca
+        FROM Carrito_Producto cp
+        JOIN Productos p ON cp.id_p = p.id_p
+        WHERE cp.id_ca = %s
+    """, (id,))
+    data = cur.fetchall()
     if data:
-        return jsonify({'carrito_producto': data})
+        # Convierte cada fila en un diccionario con nombres de campo
+        data = [dict(zip([column[0] for column in cur.description], row)) for row in data]
     else:
-        return jsonify({"error": "Carrito_Producto no encontrado"})
+        data = {"error": "Carrito_Producto no encontrado"}
+    cur.close()
+    return jsonify({'productos': data})
 
 @carrito_producto_bp.route('/carrito_producto/<id>', methods=['PUT'])
 def update_carrito_producto(id):

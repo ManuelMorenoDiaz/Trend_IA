@@ -7,10 +7,14 @@ mysql = MySQL()
 carritos_bp = Blueprint('carritos', __name__)
 
 @carritos_bp.route('/carritos', methods=['POST'])
-def add_carrito():
-    data = request.get_json()
-    fecha_creacion = datetime.strptime(data['fecha_creacion'], "%Y-%m-%d")
-    id_u = data['id_u']
+def add_carrito(id_u=None):
+    if request.method == 'POST':
+        data = request.get_json()
+        id_u = data['id_u']
+    elif id_u is None:
+        return jsonify({'error': 'No id_u provided'})
+
+    fecha_creacion = datetime.now()
     
     cur = mysql.connection.cursor()
     
@@ -20,13 +24,40 @@ def add_carrito():
         """
         
     cur.execute(query_insertion,(fecha_creacion, id_u))
+    mysql.connection.commit()  # Agrega commit aquí
+    
+    # Get the last inserted id for the specific user
+    query_last_id = """
+        SELECT id_ca FROM Carritos WHERE id_u = %s ORDER BY id_ca DESC LIMIT 1
+        """
+    cur.execute(query_last_id, (id_u,))
+    id_ca = cur.fetchone()[0]
     
     mysql.connection.commit()
     
     cur.close()
     
-    return jsonify({'message': 'Carrito añadido correctamente'})
+    return jsonify({'message': 'Carrito añadido correctamente', 'id_ca': id_ca})
 
+@carritos_bp.route('/carritos/<idU>', methods=['GET'])
+def get_carrito(idU):
+    cur = mysql.connection.cursor()
+    
+    # Get the last inserted id for the specific user
+    query_last_id = """
+        SELECT id_ca FROM Carritos WHERE id_u = %s ORDER BY id_ca DESC
+        """
+    cur.execute(query_last_id, (idU,))
+    data = cur.fetchone()[0]
+    
+    if data:
+        id_ca = data
+        return jsonify({'id_ca': id_ca})
+    else:
+        # If no carrito found for the user, add a new one and get the id
+        return add_carrito(idU)
+
+    
 @carritos_bp.route('/carritos', methods=['GET'])
 def get_all_carritos():
     cur = mysql.connection.cursor()
@@ -35,16 +66,6 @@ def get_all_carritos():
     cur.close()
     return jsonify({'carritos': data})
 
-@carritos_bp.route('/carritos/<id>', methods=['GET'])
-def get_carrito(id):
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM Carritos WHERE id_ca = %s", (id,))
-    data = cur.fetchone()
-    cur.close()
-    if data:
-        return jsonify({'carrito': data})
-    else:
-        return jsonify({"error": "Carrito no encontrado"})
 
 @carritos_bp.route('/carritos/<id>', methods=['PUT'])
 def update_carrito(id):

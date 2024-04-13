@@ -27,13 +27,6 @@ CREATE TABLE Productos (
     FOREIGN KEY (id_c) REFERENCES Categorias(id_c) ON DELETE SET NULL
 );
 
-CREATE TABLE Ventas (
-    id_v INT PRIMARY KEY AUTO_INCREMENT,
-    cantidad INT,
-    fecha DATE,
-    id_p INT, 
-    FOREIGN KEY (id_p) REFERENCES Productos(id_p) ON DELETE CASCADE
-);
 
 CREATE TABLE Usuarios (
     id_u INT PRIMARY KEY AUTO_INCREMENT,
@@ -43,6 +36,38 @@ CREATE TABLE Usuarios (
     suscripcion ENUM('FREE', 'PREMIUM')
 );
 
+CREATE TABLE Carrito_Producto (
+    id_cp INT PRIMARY KEY AUTO_INCREMENT,
+    cantidad INT,
+    id_p INT,
+    FOREIGN KEY (id_p) REFERENCES Productos(id_p) ON DELETE CASCADE,
+    id_ca INT,
+    FOREIGN KEY (id_ca) REFERENCES Carritos(id_ca) ON DELETE CASCADE
+);
+
+CREATE TABLE Carritos (
+    id_ca INT PRIMARY KEY AUTO_INCREMENT,
+    fecha_creacion DATE,
+    id_u INT,
+    FOREIGN KEY (id_u) REFERENCES Usuarios(id_u) ON DELETE SET NULL
+);
+
+
+
+CREATE TABLE Historial_Compras (
+    id_hc INT PRIMARY KEY AUTO_INCREMENT,
+    fecha_compra DATE,
+    id_ca INT,
+    FOREIGN KEY (id_ca) REFERENCES Carritos(id_ca) ON DELETE CASCADE
+);
+
+CREATE TABLE Ventas (
+    id_v INT PRIMARY KEY AUTO_INCREMENT,
+    cantidad INT,
+    fecha DATE,
+    id_p INT, 
+    FOREIGN KEY (id_p) REFERENCES Productos(id_p) ON DELETE CASCADE
+);
 CREATE TABLE Presupuestos (
     id_pre INT PRIMARY KEY AUTO_INCREMENT,
     titulo VARCHAR(255) NOT NULL,
@@ -70,27 +95,6 @@ CREATE TABLE Historial_Presupuestos (
     FOREIGN KEY (id_pre) REFERENCES Presupuestos(id_pre) ON DELETE CASCADE
 );
 
-CREATE TABLE Carritos (
-    id_ca INT PRIMARY KEY AUTO_INCREMENT,
-    fecha_creacion DATE,
-    id_u INT,
-    FOREIGN KEY (id_u) REFERENCES Usuarios(id_u) ON DELETE SET NULL
-);
 
-CREATE TABLE Carrito_Producto (
-    id_cp INT PRIMARY KEY AUTO_INCREMENT,
-    cantidad INT,
-    id_p INT,
-    FOREIGN KEY (id_p) REFERENCES Productos(id_p) ON DELETE CASCADE,
-    id_ca INT,
-    FOREIGN KEY (id_ca) REFERENCES Carritos(id_ca) ON DELETE CASCADE
-);
-
-CREATE TABLE Historial_Compras (
-    id_hc INT PRIMARY KEY AUTO_INCREMENT,
-    fecha_compra DATE,
-    id_ca INT,
-    FOREIGN KEY (id_ca) REFERENCES Carritos(id_ca) ON DELETE CASCADE
-);
 
 

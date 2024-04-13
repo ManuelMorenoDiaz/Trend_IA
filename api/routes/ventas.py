@@ -54,7 +54,7 @@ def ajustar_modelo(id_p, ventas):
         # Devolver la pendiente
         return pendiente
     except Exception as e:
-        print(f"Error al ajustar el modelo para el producto {id_p}: {e}")
+        # print(f"Error al ajustar el modelo para el producto {id_p}: {e}")
         return None
 
 @ventas_bp.route('/ventas', methods=['GET'])
