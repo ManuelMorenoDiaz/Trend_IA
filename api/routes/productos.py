@@ -2,6 +2,18 @@ from flask import Blueprint, request, jsonify
 from flask_mysqldb import MySQL
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.model_selection import train_test_split
+import numpy as np
+import json
+from datetime import datetime
+import matplotlib.dates as mdates
+from dateutil.relativedelta import relativedelta
+from flask import Blueprint, request, jsonify
+from flask_mysqldb import MySQL
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 import numpy as np
 import json
 from datetime import datetime, timedelta
@@ -10,10 +22,94 @@ import os
 from dateutil.relativedelta import relativedelta
 from sklearn.cluster import KMeans
 
+from flask import Blueprint, request, jsonify
+from flask_mysqldb import MySQL
+import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.metrics import mean_squared_error
+import numpy as np
+import json
+from datetime import datetime
+import matplotlib.dates as mdates
+from dateutil.relativedelta import relativedelta
+
 productos_bp = Blueprint('productos', __name__)
 
 mysql = MySQL()
 
+@productos_bp.route('/productos/<id>/predict', methods=['GET'])
+def predict_producto(id):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM Productos WHERE id_p = " + str(id))
+    data = cur.fetchall()
+    cur.close()
+    
+    if data:
+        producto = data[0]
+        fecha_actual = datetime.now()
+        precios_historicos_str = producto[-2]
+        precios_historicos_dict = json.loads(precios_historicos_str)
+        precios_historicos_dict = {v: k for k, v in precios_historicos_dict.items()}
+        precios_historicos = np.array([float(precio) for precio in precios_historicos_dict.values()])
+        fechas = [datetime.strptime(date, "%Y-%m-%d") for date in precios_historicos_dict.keys()]
+        fechas, precios_historicos = zip(*sorted(zip(fechas, precios_historicos)))
+        
+        meses = [fecha.month for fecha in fechas]
+        años = [fecha.year for fecha in fechas]
+        
+        datos = np.column_stack((meses, años))
+        
+        meses_a_predecir = 12
+        meses_futuro = [(fecha_actual.month + i) % 12 if (fecha_actual.month + i) % 12 != 0 else 12 for i in range(meses_a_predecir)]
+        años_futuro = [fecha_actual.year + (fecha_actual.month + i - 1) // 12 for i in range(meses_a_predecir)]
+        
+        datos_futuro = np.column_stack((meses_futuro, años_futuro))
+
+        # Ajustar el modelo de Random Forest
+        modelo = RandomForestRegressor(random_state=42)
+        
+        # Definir los hiperparámetros para la búsqueda en cuadrícula
+        parametros = {
+            'n_estimators': [50, 100, 200],
+            'max_depth': [None, 10, 20, 30],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4]
+        }
+        
+        # Búsqueda en cuadrícula
+        grid_search = GridSearchCV(modelo, parametros, cv=5, scoring='neg_mean_squared_error', verbose=1, n_jobs=-1)
+        grid_search.fit(datos, np.array(precios_historicos).ravel())
+        
+        # Mejor modelo
+        mejor_modelo = grid_search.best_estimator_
+        
+        # Validación cruzada
+        scores = cross_val_score(mejor_modelo, datos, np.array(precios_historicos).ravel(), cv=5, scoring='neg_mean_squared_error')
+        mse_scores = -scores
+        print(f"Error Cuadrático Medio (MSE) promedio: {mse_scores.mean()}")
+
+        # Predice los precios futuros
+        precio_futuro = mejor_modelo.predict(datos_futuro)
+
+        fechas_futuras = [fecha_actual + relativedelta(months=+i) for i in range(meses_a_predecir)]
+        predicciones = {str(fecha.date()): float(precio) for fecha, precio in zip(fechas_futuras, precio_futuro)}
+       
+        # plt.figure(figsize=(10,5))
+        # plt.plot(fechas, precios_historicos, color='blue', label='Precios históricos')
+        # plt.plot(fechas_futuras, precio_futuro, color='red', label='Predicción')
+        # plt.xlabel('Fecha')
+        # plt.ylabel('Precio')
+        # plt.title('Precios históricos y predicción futura')
+        # plt.legend()
+        # plt.show()
+
+        return jsonify({'predicciones': predicciones})
+    
+    else:
+        return jsonify({"error": "Producto no encontrado"})
+
+    
 @productos_bp.route('/productos/pre', methods=['POST'])
 def get_productos_filtrados():
     data = request.get_json()
@@ -106,52 +202,6 @@ def get_productosseg():
 
     return jsonify({'productos': productos_list})
 
-
-@productos_bp.route('/productos/<id>/predict', methods=['GET'])
-def predict_producto(id):
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM Productos WHERE id_p = " + str(id))
-    data = cur.fetchall()
-    cur.close()
-    if data:
-        producto = data[0]
-        fecha_actual = datetime.now()
-        precios_historicos_str = producto[-2]
-        precios_historicos_dict = json.loads(precios_historicos_str)
-        precios_historicos_dict = {v: k for k, v in precios_historicos_dict.items()}
-        precios_historicos = np.array([float(precio) for precio in precios_historicos_dict.values()])
-        fechas = [datetime.strptime(date, "%Y-%m-%d") for date in precios_historicos_dict.keys()]
-        fechas, precios_historicos = zip(*sorted(zip(fechas, precios_historicos)))
-        tiempo = np.array(range(len(precios_historicos)))
-        tiempo = tiempo.reshape(-1, 1)
-        precios_historicos = np.array(precios_historicos).reshape(-1, 1)
-        modelo = LinearRegression()
-        modelo.fit(tiempo, precios_historicos)
-        tiempo_futuro = np.array(range(len(precios_historicos), len(precios_historicos) + 10)).reshape(-1, 1)
-        precio_futuro = modelo.predict(tiempo_futuro)
-         # Decide cuántos meses predecir en base a la fecha actual
-        if fecha_actual.month < 10:
-            # Si estamos antes de octubre, predecir hasta el final del año
-            meses_a_predecir = 24 - fecha_actual.month
-        else:
-            # Si estamos en octubre o después, predecir los próximos 6 meses
-            meses_a_predecir = 10
-        # Genera las fechas futuras a partir de la fecha actual
-        fechas_futuras = [fecha_actual + relativedelta(months=+i) for i in range(meses_a_predecir)]
-        # Crear un diccionario con las fechas futuras y los precios futuros correspondientes
-        predicciones = {str(fecha.date()): float(precio) for fecha, precio in zip(fechas_futuras, precio_futuro)}
-       
-        # plt.figure(figsize=(10,5))
-        # plt.plot(fechas, precios_historicos, color='blue', label='Precios históricos')
-        # plt.plot(fechas_futuras, precio_futuro, color='red', label='Predicción')
-        # plt.xlabel('Fecha')
-        # plt.ylabel('Precio')
-        # plt.title('Precios históricos y predicción futura')
-        # plt.legend()
-        # plt.show()
-        return jsonify({'predicciones': predicciones})
-    else:
-        return jsonify({"error": "Producto no encontrado"})
 
 def guardar_imagen(ruta, imagen):
     base, extension = os.path.splitext(ruta)
