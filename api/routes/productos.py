@@ -107,7 +107,7 @@ def predict_producto(id):
         return jsonify({'predicciones': predicciones})
     
     else:
-        return jsonify({"error": "Producto no encontrado"})
+        return jsonify({"error": "Producto no encontrado"}),404
 
     
 @productos_bp.route('/productos/pre', methods=['POST'])

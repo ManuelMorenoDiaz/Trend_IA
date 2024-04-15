@@ -19,10 +19,8 @@ def register():
     contraseña = bcrypt.generate_password_hash(
         data['contraseña']).decode('utf-8')
 
-    if 'suscripcion' in data:
-        suscripcion = data['suscripcion']
-    else:
-        suscripcion = 'N/A' 
+    # Asignar 'FREE' como valor predeterminado si 'suscripcion' no está en data
+    suscripcion = data.get('suscripcion', 'FREE')  # Cambio aquí
 
     cur = mysql.connection.cursor()
 
@@ -44,7 +42,7 @@ def register():
 
     return jsonify({
         'message': 'Usuario registrado correctamente',
-        'access_token': access_token,  
+        'access_token': access_token,
         'usuario': {
             'id': id_usuario,
             'nombre': nombre,
@@ -52,6 +50,7 @@ def register():
             'suscripcion': suscripcion
         }
     }), 200
+
 
 @usuarios_bp.route('/login', methods=['POST'])
 def login():
@@ -68,17 +67,16 @@ def login():
         return jsonify({"error": "Usuario no encontrado"}), 404
     elif bcrypt.check_password_hash(user[3], contraseña):
         access_token = create_access_token(identity=correo)
-        
+
         user_data = {
             "id": user[0],
             "nombre": user[1],
             "correo": user[2],
-           
+            "suscripcion": user[4]
         }
         return jsonify({'message': 'Inicio de sesión exitoso', 'access_token': access_token, 'user': user_data})
     else:
         return jsonify({"error": "Correo o contraseña incorrectos"})
-
 
 
 @usuarios_bp.route('/usuarios', methods=['POST'])
@@ -129,23 +127,36 @@ def get_usuario(id):
 @usuarios_bp.route('/usuarios/<id>', methods=['PUT'])
 def update_usuario(id):
     data = request.get_json()
-    nombre = data['nombre']
-    correo = data['correo']
-    contraseña = data['contraseña']
-    suscripcion = data['suscripcion']
+    cambios = []
+    valores = []
 
-    cur = mysql.connection.cursor()
+    if 'nombre' in data:
+        cambios.append("nombre = %s")
+        valores.append(data['nombre'])
+    if 'correo' in data:
+        cambios.append("correo = %s")
+        valores.append(data['correo'])
+    if 'contraseña' in data:
+        cambios.append("contraseña = %s")
+        valores.append(data['contraseña'])
+    if 'suscripcion' in data:
+        cambios.append("suscripcion = %s")
+        valores.append(data['suscripcion'])
 
-    query_update = """
+    if not cambios:  # Si no hay cambios, retornar un error o mensaje.
+        return jsonify({'message': 'No se proporcionaron datos para actualizar'}), 400
+
+    valores.append(id)
+    cambios_sql = ', '.join(cambios)
+    query_update = f"""
         UPDATE Usuarios
-        SET nombre = %s, correo = %s, contraseña = %s, suscripcion = %s
+        SET {cambios_sql}
         WHERE id_u = %s
         """
 
-    cur.execute(query_update, (nombre, correo, contraseña, suscripcion, id))
-
+    cur = mysql.connection.cursor()
+    cur.execute(query_update, valores)
     mysql.connection.commit()
-
     cur.close()
 
     return jsonify({'message': 'Usuario actualizado correctamente'})
@@ -180,7 +191,8 @@ def logout():
 def get_user_profile():
     correo_usuario = get_jwt_identity()
     cur = mysql.connection.cursor()
-    cur.execute("SELECT id_u, nombre, correo, suscripcion FROM Usuarios WHERE correo = %s", (correo_usuario,))
+    cur.execute(
+        "SELECT id_u, nombre, correo, suscripcion FROM Usuarios WHERE correo = %s", (correo_usuario,))
     user = cur.fetchone()
     cur.close()
 
