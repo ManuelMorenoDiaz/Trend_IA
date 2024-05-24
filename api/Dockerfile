@@ -1,20 +1,20 @@
-# Use the official Python image as the base image
+# Usa la imagen oficial de Python como base
 FROM python:3.8-slim
 
-# Set the working directory
+# Establece el directorio de trabajo
 WORKDIR /app
 
-# Copy the requirements file into the container
+# Copia el archivo de requisitos en el contenedor
 COPY requirements.txt .
 
-# Install the required Python packages
+# Instala los paquetes de Python necesarios
 RUN pip install -r requirements.txt
 
-# Copy the rest of the application code into the container
+# Copia el resto del código de la aplicación en el contenedor
 COPY . .
 
-# Expose the port that your Flask app listens on
+# Expon el puerto en el que escucha tu aplicación Flask
 EXPOSE 5000
 
-# Start the Flask app
-CMD ["python", "app.py"]
+# Comando para iniciar la aplicación Flask usando Gunicorn
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
